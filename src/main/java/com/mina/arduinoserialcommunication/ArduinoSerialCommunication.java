@@ -15,11 +15,12 @@ import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
  import com.fasterxml.jackson.databind.ObjectMapper; // version 2.11.1
- import com.fasterxml.jackson.annotation.JsonProperty;
-import models.AiPredictModel;
-import models.LicenseNumberModel;
-import org.apache.commons.lang3.StringEscapeUtils;
-
+import java.io.FileNotFoundException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import models.GatesModel;
+import models.Price;
 
 /**
  *
@@ -36,51 +37,78 @@ public class ArduinoSerialCommunication {
 
             SerialComm s = new SerialComm();
             s.show(true);
-   CloseableHttpClient httpClient = HttpClients.createDefault();
-HttpPost uploadFile = new HttpPost("https://janus-gates.up.railway.app/api/ai/predict");
-MultipartEntityBuilder builder = MultipartEntityBuilder.create();
 
-// This attaches the file to the POST:
-File f = new File("D:\\image.jpg");
-builder.addBinaryBody(
-    "image",
-    new FileInputStream(f),
-    ContentType.APPLICATION_OCTET_STREAM,
-    f.getName()
-);
-
-HttpEntity multipart = builder.build();
-uploadFile.setEntity(multipart);
-CloseableHttpResponse response = httpClient.execute(uploadFile);
-HttpEntity responseEntity = response.getEntity();
-
-System.out.print("this is the response \n \n");
-ObjectMapper om = new ObjectMapper();
-AiPredictModel root = om.readValue(convertStreamToString(responseEntity.getContent()), AiPredictModel.class);
-for(LicenseNumberModel model : root.licenseNumber){
-    System.out.print( StringEscapeUtils.unescapeJava(model.myclass)+" ");
-}
-
+            
+//            AiPredictModel root = getObjectFromJson(postToPredictAPI("D://image.jpg"), AiPredictModel.class);
+//            for(LicenseNumberModel model : root.licenseNumber){
+//                System.out.print( model.myclass+" ");
+//            }
+//            System.out.println("\n"+root.vehicleClass);
+//GatesModel[] gatesModel = getObjectFromJson(getGates(), GatesModel[].class);
+//
+//for(GatesModel model:gatesModel){
+//    System.out.println(model.name);
+//    for(Price price:model.prices){
+//        System.out.println(price.vehicleType.name + "  -  "+price.price);
+//    }
+//}
         }
-private static String convertStreamToString(InputStream is) {
-
-    BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-    StringBuilder sb = new StringBuilder();
-
-    String line ;
-    try {
-        while ((line = reader.readLine()) != null) {
-            sb.append(line).append("\n");
-        }
-    } catch (IOException e) {
-    } finally {
-        try {
-            is.close();
-        } catch (IOException e) {
-        }
+    
+    
+    
+    public static <T>T getObjectFromJson(HttpEntity httpEntity,Class<T> valueType) throws IOException{
+        return new ObjectMapper().readValue(httpEntity.getContent(), valueType);
     }
-    return sb.toString();
-}
+    public static <T>T getObjectFromJson(String json,Class<T> valueType) throws IOException{
+        return new ObjectMapper().readValue(json, valueType);
+    }
+    private static HttpEntity postToPredictAPI(String imagePath)throws FileNotFoundException, IOException{
+           CloseableHttpClient httpClient = HttpClients.createDefault();
+            HttpPost uploadFile = new HttpPost("https://janus-gates.up.railway.app/api/ai/predict");
+            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+
+            // This attaches the file to the POST:
+            File f = new File(imagePath);
+            builder.addBinaryBody(
+                "image",
+                new FileInputStream(f),
+                ContentType.APPLICATION_OCTET_STREAM,
+                f.getName()
+            );
+
+        HttpEntity multipart = builder.build();
+        uploadFile.setEntity(multipart);
+        CloseableHttpResponse response = httpClient.execute(uploadFile);
+        HttpEntity responseEntity = response.getEntity();
+        return responseEntity;
+    }
+    private static String getGates() throws MalformedURLException, IOException{
+        String urlString = "https://janus-gates.up.railway.app/api/gates";
+        URL url = new URL(urlString);
+        URLConnection conn = url.openConnection();
+        InputStream is = conn.getInputStream();
+        return convertStreamToString(is);
+    }
+    
+    private static String convertStreamToString(InputStream is) {
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+            StringBuilder sb = new StringBuilder();
+
+            String line ;
+            try {
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line).append("\n");
+                }
+            } catch (IOException e) {
+            } finally {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                }
+            }
+            return sb.toString();
+        }
 }
 
 
