@@ -17,10 +17,9 @@ import org.apache.http.impl.client.HttpClients;
  import com.fasterxml.jackson.databind.ObjectMapper; // version 2.11.1
 import java.io.FileNotFoundException;
 import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLConnection;
 import models.GatesModel;
-import models.Price;
+
+import org.apache.http.client.methods.HttpGet;
 
 /**
  *
@@ -29,14 +28,14 @@ import models.Price;
 public class ArduinoSerialCommunication {
 
     
-    
+    private static GatesModel SELECTED_GATE = null; 
 
     
     public static void main(String[] args) throws Exception{
       
 
-            SerialComm s = new SerialComm();
-            s.show(true);
+            ChooseGate c = new ChooseGate();
+            c.show();
 
             
 //            AiPredictModel root = getObjectFromJson(postToPredictAPI("D://image.jpg"), AiPredictModel.class);
@@ -54,7 +53,9 @@ public class ArduinoSerialCommunication {
 //}
         }
     
-    
+    public static void setSelectedGate(GatesModel gate){
+        SELECTED_GATE = gate;
+    }
     
     public static <T>T getObjectFromJson(HttpEntity httpEntity,Class<T> valueType) throws IOException{
         return new ObjectMapper().readValue(httpEntity.getContent(), valueType);
@@ -79,15 +80,27 @@ public class ArduinoSerialCommunication {
         HttpEntity multipart = builder.build();
         uploadFile.setEntity(multipart);
         CloseableHttpResponse response = httpClient.execute(uploadFile);
-        HttpEntity responseEntity = response.getEntity();
-        return responseEntity;
+        if( response.getStatusLine().getStatusCode()== 200){
+            HttpEntity responseEntity = response.getEntity();
+            return responseEntity;
+       }else{
+           return null;
+       }
     }
-    private static String getGates() throws MalformedURLException, IOException{
-        String urlString = "https://janus-gates.up.railway.app/api/gates";
-        URL url = new URL(urlString);
-        URLConnection conn = url.openConnection();
-        InputStream is = conn.getInputStream();
-        return convertStreamToString(is);
+    private static HttpEntity getGates() throws MalformedURLException, IOException{
+        
+        
+         CloseableHttpClient httpClient = HttpClients.createDefault();
+            HttpGet request = new HttpGet ("https://janus-gates.up.railway.app/api/gates");
+
+    
+        CloseableHttpResponse response = httpClient.execute(request);
+       if( response.getStatusLine().getStatusCode()== 200){
+            HttpEntity responseEntity = response.getEntity();
+            return responseEntity;
+       }else{
+           return null;
+       }
     }
     
     private static String convertStreamToString(InputStream is) {
