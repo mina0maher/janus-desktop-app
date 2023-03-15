@@ -8,9 +8,12 @@ package com.mina.arduinoserialcommunication;
  *
  * @author maher
  */
+
 import com.fazecast.jSerialComm.SerialPort;
 import com.fazecast.jSerialComm.SerialPortDataListener;
 import com.fazecast.jSerialComm.SerialPortEvent;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import java.awt.Dimension;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
@@ -20,12 +23,27 @@ import java.awt.Robot;
 import java.awt.image.MultiResolutionImage;
 import java.awt.image.RenderedImage;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import javax.imageio.ImageIO;
 import javax.swing.JOptionPane;
+import models.AiPredictModel;
+import models.Ticket;
+import static utilities.Utilities.postToPredictAPI;
+import static utilities.Utilities.getObjectFromJson;
+import static com.mina.arduinoserialcommunication.ArduinoSerialCommunication.getSelectedGate;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+
+
 public class SerialComm extends javax.swing.JFrame {
     SerialPort serialPort1;
     OutputStream outputStream1;
@@ -296,21 +314,25 @@ public class SerialComm extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void button_sendActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button_sendActionPerformed
-        outputStream1 = serialPort1.getOutputStream();
-        String dataToSend= "";
-        switch(combo_endline.getSelectedIndex()){
-            case 0 -> dataToSend=text_dataToSend.getText();
-            case 1 -> dataToSend=text_dataToSend.getText()+"\n";
-            case 2 -> dataToSend=text_dataToSend.getText()+"\r";
-            case 3 -> dataToSend=text_dataToSend.getText()+"\r\n";
-        }
-        try{
-            outputStream1.write(dataToSend.getBytes());
-        }catch(IOException e){
-            JOptionPane.showMessageDialog(this,e.getMessage());
-        }
+        sendToArduino(text_dataToSend.getText());
     }//GEN-LAST:event_button_sendActionPerformed
 
+            private void sendToArduino (String messege){
+            outputStream1 = serialPort1.getOutputStream();
+                String dataToSend= "";
+                switch(combo_endline.getSelectedIndex()){
+                    case 0 -> dataToSend=messege;
+                    case 1 -> dataToSend=messege+"\n";
+                    case 2 -> dataToSend=messege+"\r";
+                    case 3 -> dataToSend=messege+"\r\n";
+                }
+                try{
+                    outputStream1.write(dataToSend.getBytes());
+                }catch(IOException e){
+                    JOptionPane.showMessageDialog(this,e.getMessage());
+                }
+            }
+    
     private void button_closeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_button_closeActionPerformed
         if(serialPort1.isOpen()){
             serialPort1.closePort();
@@ -367,7 +389,7 @@ public class SerialComm extends javax.swing.JFrame {
     
     SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd hh mm ss a");
 
-    public Image takeScreenShot() throws Exception
+    public String takeScreenShot() throws Exception
     {
         this.setVisible(false);
         Thread.sleep(300);
@@ -376,9 +398,10 @@ public class SerialComm extends javax.swing.JFrame {
         Robot robot = new Robot(graphicsDevice);
         MultiResolutionImage screenShot = robot.createMultiResolutionScreenCapture(new Rectangle(new Dimension(1290, 730)));
         Image image =screenShot.getResolutionVariant(graphicsDevice.getDisplayMode().getWidth(), graphicsDevice.getDisplayMode().getHeight());
-        ImageIO.write((RenderedImage) image, "PNG", new File("d:\\janus"+formatter.format(now.getTime())+".png"));
+        String imageName ="d:\\janus"+formatter.format(now.getTime())+".png";
+        ImageIO.write((RenderedImage) image, "PNG", new File(imageName));
         this.setVisible(true);
-        return image;
+        return imageName;
     }
     
     
@@ -393,20 +416,46 @@ public class SerialComm extends javax.swing.JFrame {
                 byte[]newData=event.getReceivedData();
                 for(int i = 0 ; i<newData.length;i++){
                     dataBuffer += (char)newData[i];
-                    if(dataBuffer.endsWith("lamp is off")){
+                    text_incomingData.setText(dataBuffer);
+                    if(dataBuffer.endsWith("car detected")){
                         try{
-                            System.out.print("hello world 5555");
-                            takeScreenShot();
+                            
+                          //  Gson gson = new Gson();
+                            CloseableHttpClient httpClient = HttpClients.createDefault();
+                            HttpPost uploadFile = new HttpPost("https://janus-gates.up.railway.app/api/ai/predict");
+                            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+
+                            // This attaches the file to the POST:
+                            File f = new File(takeScreenShot());
+                            builder.addBinaryBody(
+                                    "image",
+                                    new FileInputStream(f),
+                                    ContentType.APPLICATION_OCTET_STREAM,
+                                    f.getName()
+                            );
+
+                            HttpEntity multipart = builder.build();
+                            uploadFile.setEntity(multipart);
+                            CloseableHttpResponse response = httpClient.execute(uploadFile);
+                            AiPredictModel aiPredictModel = getObjectFromJson(response.getEntity(),AiPredictModel.class);
+                            for(Ticket ticket:aiPredictModel.tickets){
+                                if(ticket.gate.name.equals(getSelectedGate().name)&&
+                                    ticket.vehicleType.name.equals(aiPredictModel.vehicleType.name)){
+                                    sendToArduino("open gate");
+                                    System.out.print("i send it to arduino");
+                                }
+                            }
                         }catch(Exception e){
                             e.printStackTrace();
                         }
                     }
-                    text_incomingData.setText(dataBuffer);
                 }
             }
         });
     
     }
+  
+
     /**
      * @param args the command line arguments
      */

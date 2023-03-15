@@ -4,6 +4,7 @@
  */
 package models;
 
+
 /**
  *
  * @author maher
@@ -11,4 +12,20 @@ package models;
 public class Price{
     public VehicleType vehicleType;
     public double price;
+
+    public VehicleType getVehicleType() {
+        return vehicleType;
+    }
+
+    public void setVehicleType(VehicleType vehicleType) {
+        this.vehicleType = vehicleType;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+
+    public void setPrice(double price) {
+        this.price = price;
+    }
 }

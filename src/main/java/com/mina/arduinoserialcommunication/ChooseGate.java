@@ -6,15 +6,11 @@ package com.mina.arduinoserialcommunication;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import models.GatesModel;
 import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
+import static utilities.Utilities.getGates;
 
 import static com.mina.arduinoserialcommunication.ArduinoSerialCommunication.setSelectedGate;
 
@@ -129,21 +125,6 @@ public class ChooseGate extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private static HttpEntity getGates() throws MalformedURLException, IOException{
-        
-        
-         CloseableHttpClient httpClient = HttpClients.createDefault();
-            HttpGet request = new HttpGet ("https://janus-gates.up.railway.app/api/gates");
-
-    
-        CloseableHttpResponse response = httpClient.execute(request);
-       if( response.getStatusLine().getStatusCode()== 200){
-            HttpEntity responseEntity = response.getEntity();
-            return responseEntity;
-       }else{
-           return null;
-       }
-    }
     
     public static <T>T getObjectFromJson(HttpEntity httpEntity,Class<T> valueType) throws IOException{
         return new ObjectMapper().readValue(httpEntity.getContent(), valueType);
@@ -153,6 +134,7 @@ public class ChooseGate extends javax.swing.JFrame {
         setSelectedGate(gatesModel[jComboBox1.getSelectedIndex()]);
         SerialComm s = new SerialComm();
         s.show(true);
+        this.dispose();
 
     }//GEN-LAST:event_jButton1ActionPerformed
     private void jComboBox1PopupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent evt) {//GEN-FIRST:event_jComboBox1PopupMenuWillBecomeVisible
