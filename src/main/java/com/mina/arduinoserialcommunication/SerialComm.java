@@ -443,10 +443,13 @@ public class SerialComm extends javax.swing.JFrame {
                                     ticket.vehicleType.name.equals(aiPredictModel.vehicleType.name)){
                                     sendToArduino("open gate");
                                     System.out.print("i send it to arduino");
+                                }else{
+                                    sendToArduino("ticket not found");
                                 }
                             }
                         }catch(Exception e){
                             e.printStackTrace();
+                            sendToArduino("error");
                         }
                     }
                 }
