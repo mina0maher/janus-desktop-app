@@ -82,4 +82,18 @@ public class Ticket {
     public void setOwnerName(String ownerName) {
         this.ownerName = ownerName;
     }
+
+    @Override
+    public String toString() {
+        return "Ticket{" +
+                "id=" + id +
+                ", gate=" + gate +
+                ", vehicleType=" + vehicleType +
+                ", licensePlate='" + licensePlate + '\'' +
+                ", paidPrice=" + paidPrice +
+                ", timeStamp=" + timeStamp +
+                ", ownerId=" + ownerId +
+                ", ownerName='" + ownerName + '\'' +
+                '}';
+    }
 }

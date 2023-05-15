@@ -438,20 +438,26 @@ public class SerialComm extends javax.swing.JFrame {
                             uploadFile.setEntity(multipart);
                             CloseableHttpResponse response = httpClient.execute(uploadFile);
                             AiPredictModel aiPredictModel = getObjectFromJson(response.getEntity(),AiPredictModel.class);
+                            boolean ticketFounded=false;
+                            System.out.println(aiPredictModel.licenseNumber.toString()+"\n"+aiPredictModel.vehicleType.toString()+"\n"+aiPredictModel.tickets.toString());
+
                             for(Ticket ticket:aiPredictModel.tickets){
                                 if(ticket.gate.name.equals(getSelectedGate().name)&&
                                     ticket.vehicleType.name.equals(aiPredictModel.vehicleType.name)){
                                     sendToArduino("open gate");
-                                    System.out.print("i send it to arduino");
-                                }else{
-                                    sendToArduino("ticket not found");
-                                    System.out.print("ticket not found");
+                                    System.out.println("i send it to arduino");
+                                    ticketFounded=true;
                                 }
+                            }
+                            if(!ticketFounded){
+                                sendToArduino("ticket not found");
+                                System.out.println("ticket not found");
+
                             }
                         }catch(Exception e){
                             e.printStackTrace();
                             sendToArduino("error");
-                            System.out.print("error");
+                            System.out.println("error");
                         }
                     }
                 }

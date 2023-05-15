@@ -38,4 +38,20 @@ public class AiPredictModel{
     public void setTickets(ArrayList<Ticket> tickets) {
         this.tickets = tickets;
     }
+
+    @Override
+    public String toString() {
+        return "AiPredictModel{" +
+                "licenseNumber='" + licenseNumber + '\'' +
+                ", vehicleType=" + vehicleType +
+                ", tickets="+stringTickets()+
+                '}';
+    }
+    private String stringTickets(){
+        String tic = "";
+        for(Ticket t :tickets){
+            tic+=tickets.toString();
+        }
+        return tic;
+    }
 }
